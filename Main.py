@@ -1,7 +1,10 @@
 import random
 
-paquet_joueur1 = []
-paquet_joueur2 = []
+main_joueur1 = []
+main_joueur2 = []
+
+compteur1 = 0
+compteur2 = 0
 
 cartes = []
 symboles_possibles = ["carreau", "pique", "trefle", "coeur"]
@@ -14,36 +17,77 @@ class Carte:
 	def __repr__(self):
 		return f"{self.valeur} {self.symbole}"
 
-	def comparer(self, deuxieme):
-		if self.valeur > deuxieme.valeur:
-			return "gagné"
-
-
-class Paquet: 
-
-
-	def set(self, symboles_possibles, cartes):
-		for i in range(len(symboles_possibles)):
-			for v in range(2, 15):
-				temporaire = Carte(symboles_possibles[i], v)
-				cartes.append(temporaire)
-		random.shuffle(cartes)
-		return cartes
-
-	def distribuer(self, paquet_joueur1, paquet_joueur2, cartes):
-		if cartes == []:
-			return paquet_joueur1, paquet_joueur2
+	def __eq__(self, autre):
+		if self.valeur == autre.valeur:
+			return True
 		else:
-			paquet_joueur1.append(cartes[0])
-			cartes.remove(cartes[0])
-			paquet_joueur2.append(cartes[0])
-			cartes.remove(cartes[0])
-			return distribuer(self, paquet_joueur1, paquet_joueur, cartes)
+			return False
+
+	def __gt__(self, autre):
+		if self.valeur >= autre.valeur:
+			return True
+		else:
+			return False
+
+	def __lt__(self, autre):
+		if self.valeur <= autre.valeur:
+			return True
+		else: 
+			return False
 
 
+	def comparer(self, autre, compteur1, compteur2, main_joueur1, main_joueur2):
+		if self > autre:
+			main_joueur1.remove(main_joueur1[0])
+			main_joueur2.remove(main_joueur2[0])
+			compteur1 += 1
+			print(compteur1)
+			return compteur1, compteur2
+		elif self < autre:
+			main_joueur1.remove(main_joueur1[0])
+			main_joueur2.remove(main_joueur2[0])
+			compteur2 += 1
+			return compteur1, compteur2
+		""" BUG elif self == autre:
+			print("bataille!")
+			main_joueur1.remove(main_joueur1[0, 1])
+			main_joueur2.remove(main_joueur2[0, 1])
+			main_joueur1[2].comparer(main_joueur2[2], compteur1, compteur2, main_joueur1, main_joueur2)"""
+		else:
+			print("erreur")
 
+			
+class Paquet:
+    def __init__(self):
+        symboles = ["carreau", "pique", "trèfle", "cœur"]
+        valeurs = range(1, 14)
+        self.cartes = [
+            Carte(symbole, valeur)
+            for symbole in symboles
+            for valeur in valeurs
+        ]
+
+    def melanger(self):
+        random.shuffle(self.cartes)
+
+    def tirer(self):
+        if not self.cartes:
+            return None
+        return self.cartes.pop()
+
+    def __len__(self):
+        return len(self.cartes)
+
+def jouer(main_joueur1, main_joueur2, compteur1, compteur2):
+	while main_joueur1 != [] and main_joueur2 != []:
+		compteur1, compteur2 = main_joueur1[0].comparer(main_joueur2[0], compteur1, compteur2, main_joueur1, main_joueur2)
+	return compteur1, compteur2
+		
 paquet = Paquet()
-print(paquet.set(symboles_possibles, cartes))
-paquet.distribuer(paquet_joueur1, paquet_joueur2, cartes)
+paquet.melanger()
 
+main_joueur1 = [paquet.tirer() for i in range(26)]
+main_joueur2 = [paquet.tirer() for i in range(26)]
+print(main_joueur1, main_joueur2)
 
+print(jouer(main_joueur1, main_joueur2, compteur1, compteur2))
