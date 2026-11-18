@@ -1,91 +1,163 @@
+
 import random
 
-compteur1 = 0
-compteur2 = 0
-
-symboles_possibles = ["carreau", "pique", "trefle", "coeur"]
 
 class Carte:
-	def __init__(self, symbole: str, valeur: int):
-		self.symbole = symbole
-		self.valeur = valeur
+    def __init__(self, symbole: str, valeur: int):
+        self.symbole = symbole
+        self.valeur = valeur
 
-	def __repr__(self):
-		return f"{self.valeur} {self.symbole}"
+    def __repr__(self):
+        noms = {
+            1: "As",
+            11: "Valet",
+            12: "Dame",
+            13: "Roi"
+        }
+        return f"{noms.get(self.valeur, self.valeur)} {self.symbole}"
 
-	def __eq__(self, autre):
-		return self.valeur == autre.valeur
+    def comparer(self, autre):
+        if self > autre:
+            return 1
+        elif self < autre:
+            return -1
+        return 0
 
-	def __gt__(self, autre):
-		return self.valeur > autre.valeur
+    def __eq__(self, autre):
+        return self.valeur == autre.valeur
 
-	def __lt__(self, autre):
-		return self.valeur < autre.valeur
+    def __gt__(self, autre):
+        return self.valeur > autre.valeur
 
-	def __ge__(self, autre):
-		return self.valeur >= autre.valeur
-
-	def __le__(self, autre):
-		return self.valeur <= autre.valeur
+    def __lt__(self, autre):
+        return self.valeur < autre.valeur
 
 
-	def comparer(self, autre, compteur1, compteur2, mainj1, mainj2):
-		if self > autre:
-			mainj1.cartes.remove(mainj1[0])
-			mainj2.cartes.remove(mainj2[0])
-			compteur1 += 1
-			return compteur1, compteur2
-		elif self == autre:
-			print("bataille!")
-			mainj1.cartes.remove(mainj1[0, 1])
-			mainj2.cartes.remove(mainj2[0, 1])
-			mainj1[2].comparer(mainj2.cartes[1], compteur1, compteur2, mainj1, mainj2)
-
-		elif self < autre:
-			mainj1.cartes.remove(mainj1[0])
-			mainj2.cartes.remove(mainj2[0])
-			compteur2 += 1
-			return compteur1, compteur2
-		else:
-			print("erreur")
-
-			
 class Paquet:
     def __init__(self):
         self.cartes = []
 
-    def __getitem__(self, index):
-        return self.cartes[index]
-
     def remplir(self):
         symboles = ["carreau", "pique", "trèfle", "cœur"]
         valeurs = range(1, 14)
+
         self.cartes = [
             Carte(symbole, valeur)
             for symbole in symboles
             for valeur in valeurs
         ]
 
-
     def melanger(self):
         random.shuffle(self.cartes)
+
+    def recevoir(self, carte):
+        self.cartes.append(carte)
 
     def tirer(self):
         if not self.cartes:
             return None
-        return self.cartes.pop()
+        return self.cartes.pop(0)
 
-    def recevoir(self, carte):
-    	self.cartes.append(carte)
+    def envoyer(self, destination):
+        carte = self.tirer()
+        if carte is not None:
+            destination.recevoir(carte)
+
+    def recuperer(self, source):
+        while len(source) > 0:
+            self.recevoir(source.tirer())
 
     def __len__(self):
         return len(self.cartes)
 
-def jouer(mainj1, mainj2, compteur1, compteur2):
-	while mainj1 != [] and mainj2 != []:
-		compteur1, compteur2 = mainj1[0].comparer(mainj2[0], compteur1, compteur2, mainj1, mainj2)
-	return print("joueur 1 =", compteur1,"et joueur 2 =", compteur2)
-		
+
+class Partie:
+    def __init__(self, mainj1, mainj2):
+        self.mainj1 = mainj1
+        self.mainj2 = mainj2
+
+        self.zone_bataille = Paquet()
+
+        self.defausse1 = Paquet()
+        self.defausse2 = Paquet()
+
+    def preparer(self, main, defausse, nombre):
+        if len(main) < nombre and len(defausse) > 0:
+            defausse.melanger()
+            main.recuperer(defausse)
+
+        return len(main) >= nombre
+
+    def jouer_bataille(self):
+    
+        self.mainj1.envoyer(self.zone_bataille)
+        self.mainj2.envoyer(self.zone_bataille)
+        while True:
+            carte1 = self.zone_bataille.cartes[-2]
+            carte2 = self.zone_bataille.cartes[-1]
+
+            resultat = carte1.comparer(carte2)
+
+            if resultat == 1:
+                return self.defausse1
+
+            elif resultat == -1:
+                return self.defausse2
+
+            else:
+                pret1 = self.preparer(
+                    self.mainj1, self.defausse1, 2
+                )
+                pret2 = self.preparer(
+                    self.mainj2, self.defausse2, 2
+                )
+
+                if not pret1 and not pret2:
+                    return None
+                elif not pret1:
+                    return self.defausse2
+                elif not pret2:
+                    return self.defausse1
+
+                
+                self.mainj1.envoyer(self.zone_bataille)
+                self.mainj2.envoyer(self.zone_bataille)
+
+                
+                self.mainj1.envoyer(self.zone_bataille)
+                self.mainj2.envoyer(self.zone_bataille)
+
+    def jouer(self):
+        while True:
+
+            pret1 = self.preparer(
+                self.mainj1, self.defausse1, 1
+            )
+            pret2 = self.preparer(
+                self.mainj2, self.defausse2, 1
+            )
+
+            if not pret1 and not pret2:
+                print("Match nul !")
+                break
+            elif not pret1:
+                print("Le joueur 2 gagne !")
+                break
+            elif not pret2:
+                print("Le joueur 1 gagne !")
+                break
+
+            gagnant = self.jouer_bataille()
+
+            if gagnant is None:
+                print("Match nul !")
+                break
+
+            gagnant.recuperer(self.zone_bataille)
+
+
+
+# Prépaparation du jeu
 paquet_initial = Paquet()
 paquet_initial.remplir()
 paquet_initial.melanger()
@@ -94,7 +166,8 @@ mainj1 = Paquet()
 mainj2 = Paquet()
 
 for i in range(26):
-	mainj1.recevoir(paquet_initial.tirer())
-	mainj2.recevoir(paquet_initial.tirer())
+    mainj1.recevoir(paquet_initial.tirer())
+    mainj2.recevoir(paquet_initial.tirer())
 
-jouer(mainj1, mainj2, compteur1, compteur2)
+partie = Partie(mainj1, mainj2)
+partie.jouer()
